@@ -5,6 +5,9 @@
     "type": "git",
     "url": "https://github.com/r-tamura/aws-cost-ts.git"
   },
+  "bin": {
+    "awscost": "./bin/awscost"
+  },
   "dependencies": {
     "@slack/web-api": "^5.9.0",
     "@slack/webhook": "^5.0.3",

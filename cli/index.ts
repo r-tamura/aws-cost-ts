@@ -9,10 +9,14 @@ function parse(argv: string[]) {
     "-s": "--start",
     "--end": String,
     "-e": "--end",
+    "--help": Boolean,
+    "-h": "--help",
   };
   const parsed = arg(spec, { argv });
   return [parsed._, parsed] as const;
 }
+
+type Options = ReturnType<typeof parse>[1];
 
 function blankLine() {
   console.log("");
@@ -30,7 +34,18 @@ function usage() {
 
 export async function main(argv: string[]) {
   const [args, opts] = parse(argv);
+  if (opts["--help"]) {
+    displayHelp(args, opts);
+  } else {
+    postCostAndUsageToSlack(args, opts);
+  }
+}
 
+async function displayHelp(args: string[], opts: Options) {
+  usage();
+}
+
+async function postCostAndUsageToSlack(args: string[], opts: Options) {
   const channelFromEnv = process.env["SLACK_CHANNEL"];
   if (args.length < 1 && !channelFromEnv) {
     console.error("argument 'channel' is required.");
