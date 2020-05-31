@@ -28,13 +28,13 @@ describe("postCostAndUsage", () => {
           text: " ",
           fields: [
             {
-              title: "Amazon Simple Storage Service",
-              value: "$ 95.001",
+              title: "Amazon Elastic Compute Cloud - Compute",
+              value: "$ 159.403",
               short: true,
             },
             {
-              title: "Amazon Elastic Compute Cloud - Compute",
-              value: "$ 159.403",
+              title: "Amazon Simple Storage Service",
+              value: "$ 95.001",
               short: true,
             },
             {

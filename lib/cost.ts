@@ -1,5 +1,9 @@
 import { CostExplorer } from "aws-sdk";
-import { WebClient, MessageAttachment } from "@slack/web-api";
+import {
+  WebClient,
+  MessageAttachment,
+  ChatPostMessageArguments,
+} from "@slack/web-api";
 import { addDays, format } from "date-fns";
 
 interface PostCostAndUsageParams {
@@ -11,6 +15,11 @@ interface PostCostAndUsageParams {
 interface PostCostAndUsageEnv {
   slack?: WebClient;
   cost?: CostExplorer;
+}
+
+interface ServiceCost {
+  service: string;
+  cost: number;
 }
 
 /**
@@ -50,38 +59,9 @@ export async function postCostAndUsage(
 
   assertsNotUndefined(costRes.ResultsByTime, "ResultByTime");
   for (const result of costRes.ResultsByTime) {
-    let total = 0;
-    assertsNotUndefined(result.Groups, "Groups");
-
-    const fields: Required<MessageAttachment>["fields"] = [];
-    for (const group of result.Groups) {
-      // metricタイプ構成
-      // 属性名を取得するには.Keys[0]で指定する.
-      // {
-      //   "Keys": ["AWS Directory Service"],
-      //   "Metrics": {
-      //     "UnblendedCost": { "Amount": "5.3911081713", "Unit": "USD" }
-      //   }
-      // }
-      assertsCompleteGroup(group);
-      const metric = group.Metrics?.UnblendedCost;
-
-      assertsCompleteMetric(metric);
-      if (uninteresting(metric)) {
-        continue;
-      }
-
-      total += Number.parseFloat(metric.Amount);
-      fields.push({
-        title: group.Keys[0],
-        value: metric.Amount,
-        short: true,
-      });
-    }
-    const message = slackMessage({
+    const message = createMessage({
+      result,
       channel: params.channel,
-      fields,
-      total,
       start,
       end,
     });
@@ -93,9 +73,54 @@ export async function postCostAndUsage(
   }
 }
 
+function createMessage({
+  result,
+  channel,
+  start,
+  end,
+}: {
+  result: CostExplorer.ResultByTime;
+  channel: ChatPostMessageArguments["channel"];
+  start: string;
+  end: string;
+}) {
+  assertsNotUndefined(result.Groups, "Groups");
+
+  let total = 0;
+  const groups: ServiceCost[] = [];
+  for (const group of result.Groups) {
+    // metricタイプ構成
+    // 属性名を取得するには.Keys[0]で指定する.
+    // {
+    //   "Keys": ["AWS Directory Service"],
+    //   "Metrics": {
+    //     "UnblendedCost": { "Amount": "5.3911081713", "Unit": "USD" }
+    //   }
+    // }
+    assertsCompleteGroup(group);
+    assertsCompleteMetric(group.Metrics?.UnblendedCost);
+    const metric = group.Metrics.UnblendedCost;
+    const amount = Number.parseFloat(metric.Amount);
+    const serviceCost = { service: group.Keys[0], cost: amount };
+    if (uninteresting(serviceCost)) {
+      continue;
+    }
+    groups.push(serviceCost);
+    total += amount;
+  }
+  groups.sort((g1, g2) => g2.cost - g1.cost);
+  return slackMessage({
+    channel,
+    groups,
+    total,
+    start,
+    end,
+  });
+}
+
 function slackMessage(params: {
   channel: string;
-  fields: Required<MessageAttachment>["fields"];
+  groups: ServiceCost[];
   total: number;
   start: string;
   end: string;
@@ -106,9 +131,10 @@ function slackMessage(params: {
     color: "default",
     author_name: "サービス毎内訳",
     text: " ",
-    fields: params.fields.map((f) => ({
-      ...f,
-      value: "$ " + Number.parseFloat(f.value).toFixed(3),
+    fields: params.groups.map((group) => ({
+      title: group.service,
+      value: "$ " + group.cost.toFixed(3),
+      short: true,
     })),
     pretext: `*${params.start}* のAWS利用料 は *$ ${totalStr}* です`,
   };
@@ -140,8 +166,9 @@ function assertsCompleteMetric(
   }
 }
 
-function uninteresting(cost: Required<CostExplorer.MetricValue>) {
-  return Number.parseFloat(cost.Amount) < 0.05;
+const MIN_COST_IN_USD = 0.05;
+function uninteresting(group: ServiceCost) {
+  return group.cost < MIN_COST_IN_USD;
 }
 
 function yesterday() {

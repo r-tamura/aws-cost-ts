@@ -28,7 +28,7 @@ function usage() {
   blankLine();
 }
 
-export function main(argv: string[]) {
+export async function main(argv: string[]) {
   const [args, opts] = parse(argv);
 
   const channelFromEnv = process.env["SLACK_CHANNEL"];
@@ -45,5 +45,7 @@ export function main(argv: string[]) {
     process.exit(2);
   }
   const channel = args[0] ?? channelFromEnv;
-  postCostAndUsage({ channel, token });
+  await postCostAndUsage({ channel, token });
+
+  console.log(`daily cost was sent to channel '${channel}'.`);
 }
