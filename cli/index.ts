@@ -1,7 +1,7 @@
 import { postCostAndUsage } from "../lib/cost";
 import * as arg from "arg";
 
-const token = process.env["SLACK_APP_TOKEN"];
+const webhook_url = process.env["SLACK_WEBHOOK_URL"];
 
 function parse(argv: string[]) {
   const spec = {
@@ -27,8 +27,8 @@ function usage() {
   console.log("usage:", "awscost <channel>");
   blankLine();
   console.log("environment variables:");
-  console.log("    SLACK_APP_TOKEN:  Slack OAuth Token (required)");
-  console.log("    SLACK_CHANNEL  :  Slack channel");
+  console.log("    SLACK_WEBHOOK_URL:  Slack Webhook URL (required)");
+  console.log("    SLACK_CHANNEL    :  Slack channel");
   blankLine();
 }
 
@@ -53,14 +53,14 @@ async function postCostAndUsageToSlack(args: string[], opts: Options) {
     process.exit(1);
   }
 
-  if (!token) {
+  if (!webhook_url) {
     console.log(
-      `Your OAuth token must be set via environment variable 'SLACK_APP_TOKEN'.`
+      `Your webhook URL must be set via environment variable 'SLACK_WEBHOOK_URL'.`
     );
     process.exit(2);
   }
   const channel = args[0] ?? channelFromEnv;
-  await postCostAndUsage({ channel, token });
+  await postCostAndUsage({ channel, webhook_url: webhook_url });
 
   console.log(`daily cost was sent to channel '${channel}'.`);
 }

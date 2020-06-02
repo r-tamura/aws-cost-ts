@@ -1,11 +1,11 @@
-import { postCostAndUsage } from "../lib/cost";
 import * as assert from "assert";
-import { mockSlack, mockCostExplorer } from "./mock";
+import { postCostAndUsage } from "../lib/cost";
+import { mockSlackWebhook, mockCostExplorer } from "./mock";
 import { format, addDays } from "date-fns";
 describe("postCostAndUsage", () => {
   it("指定日のコストエクスプローラの結果をslackへ送信する", async () => {
     // Arrange
-    const slack = mockSlack();
+    const slack = mockSlackWebhook();
     const cost = mockCostExplorer();
     const date = new Date(2020, 0, 2);
     const token =
@@ -13,12 +13,12 @@ describe("postCostAndUsage", () => {
 
     // Act
     await postCostAndUsage(
-      { channel: "C0TESTCHANNEL", token, start: date },
+      { channel: "C0TESTCHANNEL", webhook_url: token, start: date },
       { slack, cost }
     );
 
     // Assert
-    const mockedPostMessage = slack.chat.postMessage as jest.Mock;
+    const mockedPostMessage = slack.send as jest.Mock;
     assert.deepEqual(mockedPostMessage.mock.calls[0][0], {
       attachments: [
         {
@@ -54,14 +54,14 @@ describe("postCostAndUsage", () => {
   it("１日前のコストエクプロータの結果を取得する", async () => {
     // Arrange
     const today = new Date();
-    const slack = mockSlack();
+    const slack = mockSlackWebhook();
     const cost = mockCostExplorer();
 
     // Act
     await postCostAndUsage(
       {
         channel: "C0TESTCHANNEL",
-        token: "xoxp-0000000000",
+        webhook_url: "xoxp-0000000000",
       },
       { slack, cost }
     );

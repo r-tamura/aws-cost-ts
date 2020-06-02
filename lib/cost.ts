@@ -1,19 +1,16 @@
 import { CostExplorer } from "aws-sdk";
-import {
-  WebClient,
-  MessageAttachment,
-  ChatPostMessageArguments,
-} from "@slack/web-api";
+import type { MessageAttachment } from "@slack/types";
+import { IncomingWebhook } from "@slack/webhook";
 import { addDays, format } from "date-fns";
 
 interface PostCostAndUsageParams {
   channel: string;
-  token: string;
+  webhook_url: string;
   start?: Date;
   end?: Date;
 }
 interface PostCostAndUsageEnv {
-  slack?: WebClient;
+  slack?: IncomingWebhook;
   cost?: CostExplorer;
 }
 
@@ -37,7 +34,7 @@ interface ServiceCost {
 export async function postCostAndUsage(
   params: PostCostAndUsageParams,
   {
-    slack = new WebClient(params.token),
+    slack = new IncomingWebhook(params.webhook_url),
     cost = new CostExplorer({ region: "us-east-1" }),
   }: PostCostAndUsageEnv = {}
 ) {
@@ -65,7 +62,7 @@ export async function postCostAndUsage(
       start,
       end,
     });
-    await slack.chat.postMessage({
+    await slack.send({
       attachments: [message],
       text: "",
       channel: params.channel,
@@ -80,7 +77,7 @@ function createMessage({
   end,
 }: {
   result: CostExplorer.ResultByTime;
-  channel: ChatPostMessageArguments["channel"];
+  channel: string;
   start: string;
   end: string;
 }) {

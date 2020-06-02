@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { WebClient } from "@slack/web-api";
+import { IncomingWebhook } from "@slack/webhook";
 import { CostExplorer } from "aws-sdk";
 
 const readJson = (name: string) =>
@@ -16,12 +16,10 @@ export function mockCostExplorer() {
   } as unknown) as CostExplorer;
 }
 
-export function mockSlack() {
+export function mockSlackWebhook() {
   return ({
-    chat: {
-      postMessage: jest.fn().mockResolvedValue({}),
-    },
-  } as unknown) as WebClient;
+    send: jest.fn().mockResolvedValue({}),
+  } as unknown) as IncomingWebhook;
 }
 
 export function mockDate(timeToUse: Date) {
