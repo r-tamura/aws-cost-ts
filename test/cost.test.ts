@@ -46,7 +46,6 @@ describe("postCostAndUsage", () => {
           pretext: `*2020-01-02* のAWS利用料 は *$ 254.465* です`,
         },
       ],
-      text: "",
       channel: "C0TESTCHANNEL",
     });
   });
