@@ -46,7 +46,7 @@ export class AppStack extends cdk.Stack {
     });
 
     new events.Rule(this, "DailyCost", {
-      schedule: events.Schedule.expression("cron(15 10 ? * MON-FRI *)"), // 0:10 AM JST
+      schedule: events.Schedule.expression("cron(10 15 ? * MON-FRI *)"), // 0:10 AM JST
       targets: [new targets.LambdaFunction(lambdaFn)],
     });
   }
