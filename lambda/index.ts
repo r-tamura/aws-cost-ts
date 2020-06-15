@@ -11,7 +11,7 @@ export function handler(event: any, _context: any) {
   if (!webhook_url) {
     throw new TypeError("'token' not set");
   }
-  const [args, opts] = parseEvent(event);
+  const [_args, opts] = parseEvent(event);
   console.log({ channel, webhook_url });
   postCostAndUsage({ channel, webhook_url, ...opts });
 }

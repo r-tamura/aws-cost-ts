@@ -34,7 +34,7 @@ export class AppStack extends cdk.Stack {
         "arn:aws:secretsmanager:ap-northeast-1:878754454461:secret:prod/DailyCost-DK8Eje",
     });
 
-    const lambdaFn = new lambda.NodejsFunction(this, "CostWatcher", {
+    const lambdaFn = new lambda.NodejsFunction(this, "AWSCostFunction", {
       entry: ASSET_PATH,
       handler: "handler",
       environment: {

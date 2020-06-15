@@ -2,6 +2,12 @@
 
 A script for posting AWS daily billing to Slack
 
+## Prerequisites
+
+- yarn(v1)
+- cdk
+- Docker ()
+
 ## 使い方
 
 - Secrets Manager へ Slack Webhook URL の登録
@@ -13,9 +19,10 @@ aws secretsmanager put-secret-value \
 ```
 
 - AWS 環境へのデプロイ
+  docker を起動しておく
 
 ```sh
-cdk deploy
+yarn build && cdk deploy
 ```
 
 ## Developemnt
@@ -30,4 +37,11 @@ yarn watch
 
 ```sh
 yarn test
+```
+
+## 環境消去
+
+```sh
+cdk destroy
+aws secretsmanager delete-secret --secret-id 'prod/DailyCost'
 ```
