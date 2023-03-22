@@ -1,7 +1,8 @@
+import { describe, jest } from "@jest/globals";
 import * as assert from "assert";
-import { postCostAndUsage } from "../lib/cost";
-import { mockSlackWebhook, mockCostExplorer } from "./mock";
-import { format, addDays } from "date-fns";
+import { addDays, format } from "date-fns";
+import { postCostAndUsage } from "../cost";
+import { mockCostExplorer, mockSlackWebhook } from "./mock";
 describe("postCostAndUsage", () => {
   it("指定日のコストエクスプローラの結果をslackへ送信する", async () => {
     // Arrange
@@ -19,7 +20,7 @@ describe("postCostAndUsage", () => {
 
     // Assert
     const mockedPostMessage = slack.send as jest.Mock;
-    assert.deepEqual(mockedPostMessage.mock.calls[0][0], {
+    assert.deepStrictEqual(mockedPostMessage.mock.calls[0][0], {
       attachments: [
         {
           fallback: "attachment",
@@ -50,7 +51,7 @@ describe("postCostAndUsage", () => {
     });
   });
 
-  it("１日前のコストエクプロータの結果を取得する", async () => {
+  it("１日前のコストエクプローラの結果を取得する", async () => {
     // Arrange
     const today = new Date();
     const slack = mockSlackWebhook();
@@ -67,9 +68,12 @@ describe("postCostAndUsage", () => {
 
     // Assert
     const mockedGetCostAndUsage = cost.getCostAndUsage as jest.Mock;
-    assert.deepEqual(mockedGetCostAndUsage.mock.calls[0][0].TimePeriod, {
-      Start: format(addDays(today, -1), "y-MM-dd"),
-      End: format(today, "y-MM-dd"),
-    });
+    assert.deepStrictEqual(
+      (mockedGetCostAndUsage.mock.calls[0][0] as any).TimePeriod,
+      {
+        Start: format(addDays(today, -1), "y-MM-dd"),
+        End: format(today, "y-MM-dd"),
+      }
+    );
   });
 });

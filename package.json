@@ -15,27 +15,27 @@
     "date-fns": "^2.14.0"
   },
   "devDependencies": {
-    "@aws-cdk/assert": "1.45.0",
-    "@aws-cdk/aws-events": "^1.45.0",
-    "@aws-cdk/aws-events-targets": "^1.45.0",
-    "@aws-cdk/aws-iam": "^1.45.0",
-    "@aws-cdk/aws-lambda": "^1.45.0",
-    "@aws-cdk/aws-lambda-nodejs": "^1.45.0",
-    "@aws-cdk/aws-secretsmanager": "^1.45.0",
-    "@aws-cdk/aws-ssm": "^1.45.0",
-    "@types/jest": "^25.2.3",
-    "@types/node": "14.0.9",
-    "aws-cdk": "1.42.1",
-    "jest": "^26.0.1",
-    "ts-jest": "^26.1.0",
+    "@aws-cdk/assert": "1.70.0",
+    "@aws-cdk/aws-events": "^1.70.0",
+    "@aws-cdk/aws-events-targets": "^1.70.0",
+    "@aws-cdk/aws-iam": "^1.70.0",
+    "@aws-cdk/aws-lambda": "^1.70.0",
+    "@aws-cdk/aws-lambda-nodejs": "^1.70.0",
+    "@aws-cdk/aws-secretsmanager": "^1.70.0",
+    "@aws-cdk/aws-ssm": "^1.70.0",
+    "@types/jest": "^29.5.0",
+    "@types/node": "18.15.5",
+    "aws-cdk": "1.70.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.0.5",
     "ts-node": "^8.10.2",
-    "typescript": "^3.9.3"
+    "typescript": "^5.0.2"
   },
   "scripts": {
     "start": "tsc && ./bin/awscost",
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "jest --watch ./test/*.test.ts ",
+    "test": "jest --config=jest.config.small.js",
     "test:cdk": "yarn test cdk/test/"
   }
 }
