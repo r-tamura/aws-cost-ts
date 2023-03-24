@@ -6,11 +6,11 @@ A script for posting AWS daily billing to Slack
 
 - yarn(v1)
 - cdk
-- Docker ()
+- esbuild
 
 ## 使い方
 
-- Secrets Manager へ Slack Webhook URL の登録
+- Secrets ManagerへSlack Webhook URLの登録
 
 ```sh
 aws secretsmanager put-secret-value \
@@ -18,11 +18,10 @@ aws secretsmanager put-secret-value \
  --secret-string '{"SLACK_WEBHOOK_URL": "https://hooks.slack.com/services/XXXXXXXXX/XXXXXXXXX/XXXXXXXXXXXXXXXXXX"}'
 ```
 
-- AWS 環境へのデプロイ
-  docker を起動しておく
+- AWS環境へのデプロイ
 
 ```sh
-yarn build && cdk deploy
+SLACK_WEBHOOK_URL_SECRETSMANAGER_ARN='Secret ARN' cdk deploy 
 ```
 
 ## Developemnt

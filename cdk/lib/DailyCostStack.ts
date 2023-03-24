@@ -1,15 +1,31 @@
+import {
+  Stack,
+  StackProps,
+  aws_events as events,
+  aws_iam as iam,
+  aws_lambda as lambda,
+  aws_lambda_nodejs as nodejs,
+  aws_secretsmanager as sm,
+  aws_events_targets as targets,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
 import * as path from "path";
-import * as cdk from "@aws-cdk/core";
-import * as iam from "@aws-cdk/aws-iam";
-import * as events from "@aws-cdk/aws-events";
-import * as targets from "@aws-cdk/aws-events-targets";
-import * as sm from "@aws-cdk/aws-secretsmanager";
-import * as lambda from "@aws-cdk/aws-lambda-nodejs";
 
 const ASSET_PATH = path.join(__dirname, "..", "..", "lambda", "index.ts");
 
-export class AppStack extends cdk.Stack {
-  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+interface AppStackProps extends StackProps {
+  slackWebhookUrlsecretsmanagerArn: string;
+}
+
+export class DaylyCostSlackNotificationStack extends Stack {
+  constructor(
+    scope: Construct,
+    id: string,
+    {
+      slackWebhookUrlsecretsmanagerArn: secretsmanagerArn,
+      ...props
+    }: AppStackProps
+  ) {
     super(scope, id, props);
 
     const lambdaPolicy = new iam.PolicyDocument({
@@ -30,13 +46,13 @@ export class AppStack extends cdk.Stack {
     });
 
     const secret = sm.Secret.fromSecretAttributes(this, "ImportedSecret", {
-      secretArn:
-        "arn:aws:secretsmanager:ap-northeast-1:878754454461:secret:prod/DailyCost-DK8Eje",
+      secretCompleteArn: secretsmanagerArn,
     });
 
-    const lambdaFn = new lambda.NodejsFunction(this, "AWSCostFunction", {
+    const lambdaFn = new nodejs.NodejsFunction(this, "AWSCostFunction", {
       entry: ASSET_PATH,
       handler: "handler",
+      runtime: lambda.Runtime.NODEJS_18_X,
       environment: {
         SLACK_WEBHOOK_URL: secret
           .secretValueFromJson("SLACK_WEBHOOK_URL")
