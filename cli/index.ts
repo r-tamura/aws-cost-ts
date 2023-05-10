@@ -1,5 +1,5 @@
+import arg from "arg";
 import { postCostAndUsage } from "../lib/cost";
-import * as arg from "arg";
 
 const webhook_url = process.env["SLACK_WEBHOOK_URL"];
 

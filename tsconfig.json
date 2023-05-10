@@ -2,10 +2,14 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
+    "moduleResolution": "node16",
     "declaration": true,
     "strict": true,
     "outDir": "./dist",
     "sourceMap": true,
+    "esModuleInterop": true,
+    // `jest@29.1.0`と`@types/jest@29.5.1`環境で以下のエラーが起こるため.
+    // Interface 'JestImportMeta' incorrectly extends interface 'ImportMeta'.
     "skipLibCheck": true
   }
 }

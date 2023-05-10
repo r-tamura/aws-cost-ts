@@ -1,7 +1,7 @@
-import * as fs from "fs";
-import * as path from "path";
 import { IncomingWebhook } from "@slack/webhook";
 import { CostExplorer } from "aws-sdk";
+import * as fs from "fs";
+import * as path from "path";
 
 const readJson = (name: string) =>
   fs.promises
@@ -9,11 +9,11 @@ const readJson = (name: string) =>
     .then(JSON.parse);
 
 export function mockCostExplorer() {
-  return ({
+  return {
     getCostAndUsage: jest.fn().mockReturnValue({
       promise: jest.fn().mockImplementation(() => readJson("getCostAndUsage")),
     }),
-  } as unknown) as CostExplorer;
+  } as unknown as CostExplorer;
 }
 
 export function mockSlackWebhook() {

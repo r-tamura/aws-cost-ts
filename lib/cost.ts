@@ -1,6 +1,6 @@
-import { CostExplorer } from "aws-sdk";
 import type { MessageAttachment } from "@slack/types";
 import { IncomingWebhook } from "@slack/webhook";
+import { CostExplorer } from "aws-sdk";
 import { addDays, format } from "date-fns";
 
 interface PostCostAndUsageParams {
@@ -50,7 +50,7 @@ export async function postCostAndUsage(
       },
       Metrics: ["UnblendedCost"],
       Granularity: "DAILY",
-      GroupBy: [{ Type: "DIMENSION", Key: "SERVICE" }],
+      GroupBy: [{ Type: "DIMENSION", Key: "LINKED_ACCOUNT" }],
     })
     .promise();
 
@@ -86,7 +86,7 @@ function createMessage({
     assertsCompleteGroup(group);
     assertsCompleteMetric(group.Metrics?.UnblendedCost);
     const metric = group.Metrics.UnblendedCost;
-    const amount = Number.parseFloat(metric.Amount);
+    const amount = Number(metric.Amount);
     const serviceCost = { service: group.Keys[0], cost: amount };
     if (uninteresting(serviceCost)) {
       continue;

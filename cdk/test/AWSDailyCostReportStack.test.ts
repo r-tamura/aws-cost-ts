@@ -1,6 +1,6 @@
 import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
-import { DaylyCostSlackNotificationStack } from "../lib/DailyCostStack";
+import { AWSDaylyCostSlackReportStack } from "../lib/AWSDailyCostReportStack";
 
 describe("DailyCostSlackNotificationStack", () => {
   test("利用コストをAWS APIから取得してSlackへ通知するLambda関数が定義されている", () => {
@@ -8,9 +8,13 @@ describe("DailyCostSlackNotificationStack", () => {
     const app = new App();
     const testSecresmanagerSecretArn =
       "arn:aws:secretsmanager:ap-northeast-1:878754454461:secret:prod/DailyCost-xxxxxx";
-    const stack = new DaylyCostSlackNotificationStack(app, "DailyCost", {
-      slackWebhookUrlsecretsmanagerArn: testSecresmanagerSecretArn,
-    });
+    const stack = new AWSDaylyCostSlackReportStack(
+      app,
+      "Test-AWSDailyCostReporter",
+      {
+        slackWebhookUrlSecretsManagerArn: testSecresmanagerSecretArn,
+      }
+    );
     // THEN
     const template = Template.fromStack(stack);
 

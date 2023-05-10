@@ -1,10 +1,11 @@
+import { GetCostAndUsageRequest } from "@aws-sdk/client-cost-explorer";
 import { describe, jest } from "@jest/globals";
 import * as assert from "assert";
 import { addDays, format } from "date-fns";
 import { postCostAndUsage } from "../cost";
 import { mockCostExplorer, mockSlackWebhook } from "./mock";
 describe("postCostAndUsage", () => {
-  it("指定日のコストエクスプローラの結果をslackへ送信する", async () => {
+  it("指定日のコストエクスプローラの結果をslackへ送信する. リザーブドインスタンスなどの料金は支払日に加算する", async () => {
     // Arrange
     const slack = mockSlackWebhook();
     const cost = mockCostExplorer();
@@ -19,6 +20,29 @@ describe("postCostAndUsage", () => {
     );
 
     // Assert
+    const mockedGetCostAndUsage = cost.getCostAndUsage as jest.Mock;
+    const firstCall = mockedGetCostAndUsage.mock
+      .calls[0][0] as GetCostAndUsageRequest;
+    assert.deepStrictEqual(
+      firstCall["TimePeriod"],
+      {
+        Start: "2020-01-02",
+        End: "2020-01-03",
+      },
+      "指定日のコストを取得する"
+    );
+    assert.deepStrictEqual(
+      firstCall["Metrics"],
+      ["UnblendedCost"],
+      "リザーブドインスタンスなどの支払いは、すべて支払日のコストに含める"
+    );
+    assert.deepStrictEqual(firstCall["Granularity"], "DAILY");
+    assert.deepStrictEqual(
+      firstCall["GroupBy"],
+      [{ Type: "DIMENSION", Key: "LINKED_ACCOUNT" }],
+      "アカウント毎にグループ化する"
+    );
+
     const mockedPostMessage = slack.send as jest.Mock;
     assert.deepStrictEqual(mockedPostMessage.mock.calls[0][0], {
       attachments: [

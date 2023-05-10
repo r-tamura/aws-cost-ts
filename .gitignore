@@ -108,4 +108,7 @@ dist
 
 # cdk
 cdk.out
+cdk.context.json
 
+# Customized for this project
+work

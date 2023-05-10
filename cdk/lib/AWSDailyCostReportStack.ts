@@ -13,18 +13,21 @@ import * as path from "path";
 
 const ASSET_PATH = path.join(__dirname, "..", "..", "lambda", "index.ts");
 
-interface AppStackProps extends StackProps {
-  slackWebhookUrlsecretsmanagerArn: string;
+export interface AWSDaylyCostSlackReportStackProps extends StackProps {
+  /**
+   * The ARN of the AWS SecretsManager that stores the Slack webhook URL.
+   */
+  slackWebhookUrlSecretsManagerArn: string;
 }
 
-export class DaylyCostSlackNotificationStack extends Stack {
+export class AWSDaylyCostSlackReportStack extends Stack {
   constructor(
     scope: Construct,
     id: string,
     {
-      slackWebhookUrlsecretsmanagerArn: secretsmanagerArn,
+      slackWebhookUrlSecretsManagerArn: secretsmanagerArn,
       ...props
-    }: AppStackProps
+    }: AWSDaylyCostSlackReportStackProps
   ) {
     super(scope, id, props);
 
