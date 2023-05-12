@@ -2,20 +2,6 @@ import { App } from "aws-cdk-lib";
 import z from "zod";
 import { AWSDaylyCostSlackReportStack } from "../lib/AWSDailyCostReportStack";
 
-function getArgsFromEnv() {
-  const SLACK_WEBHOOK_URL_SECRETSMANAGER_ARN =
-    process.env["SLACK_WEBHOOK_URL_SECRETSMANAGER_ARN"];
-
-  if (SLACK_WEBHOOK_URL_SECRETSMANAGER_ARN === undefined) {
-    throw Error(
-      "environment variable 'SLACK_WEBHOOK_URL_SECRETSMANAGER_ARN' is required"
-    );
-  }
-  return {
-    SLACK_WEBHOOK_URL_SECRETSMANAGER_ARN,
-  };
-}
-
 const appConfigSchema = z.object({
   name: z.string().toLowerCase(),
   // スタック名のサフィックス

@@ -1,4 +1,4 @@
-import { postCostAndUsage } from "../lib/cost";
+import { postCostAndUsageByAccount } from "../lib/cost";
 
 const webhook_url = process.env["SLACK_WEBHOOK_URL"];
 const channel = process.env["SLACK_CHANNEL"];
@@ -13,5 +13,5 @@ export function handler(event: any, _context: any) {
   }
   const [_args, opts] = parseEvent(event);
   console.log({ channel, webhook_url });
-  postCostAndUsage({ channel, webhook_url, ...opts });
+  postCostAndUsageByAccount({ channel, webhook_url, ...opts });
 }

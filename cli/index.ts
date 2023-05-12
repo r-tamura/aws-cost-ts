@@ -1,5 +1,5 @@
 import arg from "arg";
-import { postCostAndUsage } from "../lib/cost";
+import { postCostAndUsageByAccount } from "../lib/cost";
 
 const webhook_url = process.env["SLACK_WEBHOOK_URL"];
 
@@ -60,7 +60,7 @@ async function postCostAndUsageToSlack(args: string[], opts: Options) {
     process.exit(2);
   }
   const channel = args[0] ?? channelFromEnv;
-  await postCostAndUsage({ channel, webhook_url: webhook_url });
+  await postCostAndUsageByAccount({ channel, webhook_url: webhook_url });
 
   console.log(`daily cost was sent to channel '${channel}'.`);
 }
