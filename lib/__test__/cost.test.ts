@@ -10,7 +10,7 @@ import { addDays, format } from "date-fns";
 import { postCostAndUsageByAccount } from "../cost";
 
 describe("postCostAndUsage", () => {
-  test("指定日のコストエクスプローラの結果をslackへ送信する. リザーブドインスタンスなどの料金は支払日に加算する(Unblended)", async () => {
+  test("指定日のコストエクスプローラの結果をslackへ送信する. リザーブドインスタンスなどの料金は支払日に加算する(AmortizedCost)", async () => {
     // Arrange
     // TypeScriptではmockResolvedValueの利用するのに型の指定が必要
     // https://jestjs.io/docs/mock-function-api#mockfnmockresolvedvalueoncevalue
@@ -30,19 +30,19 @@ describe("postCostAndUsage", () => {
                 {
                   Keys: ["123456789123"],
                   Metrics: {
-                    UnblendedCost: { Amount: "95.0012729986", Unit: "USD" },
+                    AmortizedCost: { Amount: "95.0012729986", Unit: "USD" },
                   },
                 },
                 {
                   Keys: ["456789123456"],
                   Metrics: {
-                    UnblendedCost: { Amount: "159.4033492869", Unit: "USD" },
+                    AmortizedCost: { Amount: "159.4033492869", Unit: "USD" },
                   },
                 },
                 {
                   Keys: ["789123456789"],
                   Metrics: {
-                    UnblendedCost: { Amount: "0.060", Unit: "USD" },
+                    AmortizedCost: { Amount: "0.060", Unit: "USD" },
                   },
                 },
               ],
@@ -95,8 +95,8 @@ describe("postCostAndUsage", () => {
     );
     assert.deepStrictEqual(
       firstCall["Metrics"],
-      ["UnblendedCost"],
-      "リザーブドインスタンスなどの支払いは、すべて支払日のコストに含める"
+      ["AmortizedCost"],
+      "リザーブドインスタンス/Savings Planの料金は、使用期間で均等に割り振る"
     );
     assert.deepStrictEqual(firstCall["Granularity"], "DAILY");
     assert.deepStrictEqual(
@@ -111,7 +111,7 @@ describe("postCostAndUsage", () => {
         {
           fallback: "attachment",
           color: "default",
-          author_name: "サービス毎内訳",
+          author_name: "アカウント毎内訳",
           text: " ",
           fields: [
             {

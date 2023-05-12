@@ -34,7 +34,7 @@ const getCostAndUsageByAccountSchema = z.object({
         z.object({
           Keys: z.array(z.string()),
           Metrics: z.object({
-            UnblendedCost: z.object({
+            AmortizedCost: z.object({
               Amount: z.string().transform(Number),
               Unit: z.literal("USD"),
             }),
@@ -75,7 +75,7 @@ export async function postCostAndUsageByAccount(
       Start: start,
       End: end,
     },
-    Metrics: ["UnblendedCost"],
+    Metrics: ["AmortizedCost"],
     Granularity: "DAILY",
     GroupBy: [{ Type: "DIMENSION", Key: "LINKED_ACCOUNT" }],
   });
@@ -94,8 +94,8 @@ export async function postCostAndUsageByAccount(
 
   for (const result of costResponse.ResultsByTime) {
     const accounts = result.Groups.reduce((accounts, responseGroup) => {
-      const metric = responseGroup.Metrics.UnblendedCost;
-      const amount = Number(metric.Amount);
+      const metric = responseGroup.Metrics.AmortizedCost;
+      const amount = metric.Amount;
       const accountId = responseGroup.Keys[0];
       const accountCost = {
         accountId,
@@ -128,7 +128,7 @@ function buildSlackMessage({
   const message: MessageAttachment = {
     fallback: "attachment",
     color: "default",
-    author_name: "サービス毎内訳",
+    author_name: "アカウント毎内訳",
     text: " ",
     fields: accountsToPost.map((account) => ({
       title: `${account.accountName} (${account.accountId})`,
