@@ -60,7 +60,10 @@ async function postCostAndUsageToSlack(args: string[], opts: Options) {
     process.exit(2);
   }
   const channel = args[0] ?? channelFromEnv;
-  await postCostAndUsageByAccount({ channel, webhook_url: webhook_url });
+  await postCostAndUsageByAccount({ channel,
+    webhook_url,
+    start: opts["--start"] ? new Date(opts["--start"]) : undefined
+  });
 
   console.log(`daily cost was sent to channel '${channel}'.`);
 }
