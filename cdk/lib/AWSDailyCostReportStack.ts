@@ -6,28 +6,28 @@ import {
   aws_lambda as lambda,
   aws_lambda_nodejs as nodejs,
   aws_secretsmanager as sm,
-  aws_events_targets as targets,
+  aws_events_targets as targets
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as path from "path";
 
 const ASSET_PATH = path.join(__dirname, "..", "..", "lambda", "index.ts");
 
-export interface AWSDaylyCostSlackReportStackProps extends StackProps {
+export interface AWSDailyCostSlackReportStackProps extends StackProps {
   /**
    * The ARN of the AWS SecretsManager that stores the Slack webhook URL.
    */
   slackWebhookUrlSecretsManagerArn: string;
 }
 
-export class AWSDaylyCostSlackReportStack extends Stack {
+export class AWSDailyCostSlackReportStack extends Stack {
   constructor(
     scope: Construct,
     id: string,
     {
       slackWebhookUrlSecretsManagerArn: secretsmanagerArn,
       ...props
-    }: AWSDaylyCostSlackReportStackProps
+    }: AWSDailyCostSlackReportStackProps
   ) {
     super(scope, id, props);
 
@@ -47,6 +47,11 @@ export class AWSDaylyCostSlackReportStack extends Stack {
         lambdaPolicy,
       },
     });
+    lambdaRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName(
+        "service-role/AWSLambdaBasicExecutionRole"
+      )
+    )
 
     const secret = sm.Secret.fromSecretAttributes(this, "ImportedSecret", {
       secretCompleteArn: secretsmanagerArn,
@@ -65,7 +70,7 @@ export class AWSDaylyCostSlackReportStack extends Stack {
     });
 
     new events.Rule(this, "DailyCost", {
-      schedule: events.Schedule.expression("cron(10 15 ? * MON-FRI *)"), // 0:10 AM JST
+      schedule: events.Schedule.expression("cron(10 15 ? * * *)"), // 0:30 AM JST
       targets: [new targets.LambdaFunction(lambdaFn)],
     });
   }

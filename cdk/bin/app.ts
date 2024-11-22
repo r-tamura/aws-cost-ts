@@ -1,6 +1,6 @@
 import { App } from "aws-cdk-lib";
 import z from "zod";
-import { AWSDaylyCostSlackReportStack } from "../lib/AWSDailyCostReportStack";
+import { AWSDailyCostSlackReportStack } from "../lib/AWSDailyCostReportStack";
 
 const appConfigSchema = z.object({
   name: z.string().toLowerCase(),
@@ -19,7 +19,7 @@ type AppConfig = z.infer<typeof appConfigSchema>;
 function createConfigFromContext(app: App): AppConfig {
   const envKey = app.node.tryGetContext("environment");
   if (envKey === undefined) {
-    throw new Error("usage: cdk deploy -c environemnt=<env name>");
+    throw new Error("usage: cdk deploy -c environment=<env name>");
   }
 
   const appConfigRaw = app.node.tryGetContext(envKey);
@@ -37,7 +37,7 @@ const app = new App();
 
 const appConfig = createConfigFromContext(app);
 
-new AWSDaylyCostSlackReportStack(
+new AWSDailyCostSlackReportStack(
   app,
   `AWSDailyCostReporter-${appConfig.stackNameSuffix}`,
   {

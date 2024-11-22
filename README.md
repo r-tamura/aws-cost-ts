@@ -34,7 +34,6 @@ aws secretsmanager create-secret \
     }
   }
 }
-
 ```
 
 例: dev環境
@@ -55,10 +54,10 @@ aws secretsmanager create-secret \
 `cdk deploy`コマンドの`-c`/`--context`オプションで環境名を指定してデプロイする。
 
 ```sh
-cdk deploy -c environemnt=<environment key>
+cdk deploy -c environment=<environment name>
 ```
 
-## Developemnt
+## Development
 
 - build
 
@@ -75,7 +74,7 @@ yarn test
 ## Delete resources
 
 ```sh
-cdk destroy -c environemnt=<environment key>
+cdk destroy -c environment=<environment name>
 aws secretsmanager delete-secret --secret-id 'prod/DailyCost'
 ```
 

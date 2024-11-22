@@ -1,36 +1,41 @@
 import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
-import { AWSDaylyCostSlackReportStack } from "../lib/AWSDailyCostReportStack";
+import { AWSDailyCostSlackReportStack } from "../lib/AWSDailyCostReportStack";
 
 describe("DailyCostSlackNotificationStack", () => {
-  test("利用コストをAWS APIから取得してSlackへ通知するLambda関数が定義されている", () => {
-    // WHEN
+
+  const TEST_SECRETS_MANAGER_SECRET_ARN =
+    "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:prod/DailyCost-xxxxxx";
+  let template: Template;
+  beforeAll(() => {
     const app = new App();
-    const testSecresmanagerSecretArn =
-      "arn:aws:secretsmanager:ap-northeast-1:878754454461:secret:prod/DailyCost-xxxxxx";
-    const stack = new AWSDaylyCostSlackReportStack(
+
+    const stack = new AWSDailyCostSlackReportStack(
       app,
       "Test-AWSDailyCostReporter",
       {
-        slackWebhookUrlSecretsManagerArn: testSecresmanagerSecretArn,
+        slackWebhookUrlSecretsManagerArn: TEST_SECRETS_MANAGER_SECRET_ARN,
       }
     );
-    // THEN
-    const template = Template.fromStack(stack);
+    template = Template.fromStack(stack);
+  })
 
+  test("利用コストをAWS APIから取得してSlackへ通知するLambda関数が定義されている", () => {
     template.hasResourceProperties("AWS::Lambda::Function", {
       Handler: "index.handler",
       Runtime: "nodejs18.x",
       Environment: {
         Variables: {
-          SLACK_WEBHOOK_URL: Match.stringLikeRegexp(testSecresmanagerSecretArn),
+          SLACK_WEBHOOK_URL: Match.stringLikeRegexp(TEST_SECRETS_MANAGER_SECRET_ARN),
         },
       },
     });
+  });
 
+  test("Lambda関数がCostExplorer APIを利用してコストを取得するための権限を持っている", () => {
     template.hasResourceProperties(
       "AWS::IAM::Role",
-      Match.objectEquals({
+      Match.objectLike({
         AssumeRolePolicyDocument: {
           Version: "2012-10-17",
           Statement: [
@@ -61,4 +66,36 @@ describe("DailyCostSlackNotificationStack", () => {
       })
     );
   });
+
+  test("Lambda関数にAWSLambdaBasicExecutionRoleを付与されている", () => {
+    template.hasResourceProperties(
+      "AWS::IAM::Role",
+      Match.objectLike({
+        AssumeRolePolicyDocument: {
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Action: "sts:AssumeRole",
+              Effect: "Allow",
+              Principal: {
+                Service: "lambda.amazonaws.com",
+              },
+            },
+          ],
+        },
+        ManagedPolicyArns: [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                { Ref: "AWS::Partition" },
+                Match.stringLikeRegexp(".*AWSLambdaBasicExecutionRole"),
+              ],
+            ],
+          }
+        ],
+      })
+    );
+  })
 });
