@@ -60,7 +60,7 @@ export class AWSDailyCostSlackReportStack extends Stack {
     const lambdaFn = new nodejs.NodejsFunction(this, "AWSCostFunction", {
       entry: ASSET_PATH,
       handler: "handler",
-      runtime: lambda.Runtime.NODEJS_18_X,
+      runtime: lambda.Runtime.NODEJS_LATEST,
       environment: {
         SLACK_WEBHOOK_URL: secret
           .secretValueFromJson("SLACK_WEBHOOK_URL")
