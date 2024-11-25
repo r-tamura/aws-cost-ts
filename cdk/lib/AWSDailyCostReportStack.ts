@@ -4,6 +4,7 @@ import {
   aws_events as events,
   aws_iam as iam,
   aws_lambda as lambda,
+  aws_logs as logs,
   aws_lambda_nodejs as nodejs,
   aws_secretsmanager as sm,
   aws_events_targets as targets
@@ -67,6 +68,7 @@ export class AWSDailyCostSlackReportStack extends Stack {
           .toString(),
       },
       role: lambdaRole,
+      logRetention: logs.RetentionDays.ONE_MONTH
     });
 
     new events.Rule(this, "DailyCost", {
