@@ -1,16 +1,16 @@
 import {
-  Stack,
-  StackProps,
   aws_events as events,
   aws_iam as iam,
   aws_lambda as lambda,
   aws_logs as logs,
   aws_lambda_nodejs as nodejs,
   aws_secretsmanager as sm,
-  aws_events_targets as targets
+  Stack,
+  aws_events_targets as targets,
+  type StackProps,
 } from "aws-cdk-lib";
-import { Construct } from "constructs";
-import * as path from "path";
+import type { Construct } from "constructs";
+import * as path from "node:path";
 
 const ASSET_PATH = path.join(__dirname, "..", "..", "lambda", "index.ts");
 
@@ -28,7 +28,7 @@ export class AWSDailyCostSlackReportStack extends Stack {
     {
       slackWebhookUrlSecretsManagerArn: secretsmanagerArn,
       ...props
-    }: AWSDailyCostSlackReportStackProps
+    }: AWSDailyCostSlackReportStackProps,
   ) {
     super(scope, id, props);
 
@@ -50,9 +50,9 @@ export class AWSDailyCostSlackReportStack extends Stack {
     });
     lambdaRole.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName(
-        "service-role/AWSLambdaBasicExecutionRole"
-      )
-    )
+        "service-role/AWSLambdaBasicExecutionRole",
+      ),
+    );
 
     const secret = sm.Secret.fromSecretAttributes(this, "ImportedSecret", {
       secretCompleteArn: secretsmanagerArn,
@@ -68,7 +68,7 @@ export class AWSDailyCostSlackReportStack extends Stack {
           .toString(),
       },
       role: lambdaRole,
-      logRetention: logs.RetentionDays.ONE_MONTH
+      logRetention: logs.RetentionDays.ONE_MONTH,
     });
 
     new events.Rule(this, "DailyCost", {
