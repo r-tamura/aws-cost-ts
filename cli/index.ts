@@ -1,7 +1,8 @@
+import { IncomingWebhook } from "@slack/webhook";
 import arg from "arg";
-import { postCostAndUsageByAccount } from "../lib/cost";
+import { createSlackReporter, postCostAndUsageByAccount } from "../lib/cost";
 
-const webhook_url = process.env["SLACK_WEBHOOK_URL"];
+const webhook_url = process.env.SLACK_WEBHOOK_URL;
 
 function parse(argv: string[]) {
   const spec = {
@@ -46,7 +47,7 @@ async function displayHelp(args: string[], opts: Options) {
 }
 
 async function postCostAndUsageToSlack(args: string[], opts: Options) {
-  const channelFromEnv = process.env["SLACK_CHANNEL"];
+  const channelFromEnv = process.env.SLACK_CHANNEL;
   if (args.length < 1 && !channelFromEnv) {
     console.error("argument 'channel' is required.");
     usage();
@@ -55,15 +56,21 @@ async function postCostAndUsageToSlack(args: string[], opts: Options) {
 
   if (!webhook_url) {
     console.log(
-      `Your webhook URL must be set via environment variable 'SLACK_WEBHOOK_URL'.`
+      `Your webhook URL must be set via environment variable 'SLACK_WEBHOOK_URL'.`,
     );
     process.exit(2);
   }
   const channel = args[0] ?? channelFromEnv;
-  await postCostAndUsageByAccount({ channel,
-    webhook_url,
-    start: opts["--start"] ? new Date(opts["--start"]) : undefined
-  });
+  const reporter = createSlackReporter(
+    channel,
+    new IncomingWebhook(webhook_url),
+  );
+  await postCostAndUsageByAccount(
+    {
+      start: opts["--start"] ? new Date(opts["--start"]) : undefined,
+    },
+    { reporter },
+  );
 
   console.log(`daily cost was sent to channel '${channel}'.`);
 }

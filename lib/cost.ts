@@ -1,22 +1,18 @@
 import { CostExplorer } from "@aws-sdk/client-cost-explorer";
 import type { MessageAttachment } from "@slack/types";
-import { IncomingWebhook } from "@slack/webhook";
+import type { IncomingWebhook } from "@slack/webhook";
 import { addDays, format } from "date-fns";
 import z from "zod";
 
 interface PostCostAndUsageParams {
-  /**  webhook_url ポスト先Slack Webhook エンドポイントURL */
-  webhook_url: string;
-  /**  channel slack ポスト先チャネルID. 指定されない場合は、Webhook URLに指定されているチャネル。 */
-  channel?: string;
   /**  start コスト取得期間の開始日 */
   start?: Date;
   /**  end コスト取得期間の終了日 */
   end?: Date;
 }
-interface PostCostAndUsageEnv {
+interface PostCostAndUsageContext {
   /** slack Slack Web API クライアントオブジェクト */
-  slack?: IncomingWebhook;
+  reporter: Reporter;
   /** AWS Cost Explorerクライアントオブジェクト(CEはus-east-1のみサポート) */
   ce?: CostExplorer;
 }
@@ -26,6 +22,31 @@ interface AccountCost {
   accountName: string;
   cost: number;
 }
+
+export interface ReporterInput {
+  start: string;
+  end: string;
+  accounts: AccountCost[];
+}
+
+export interface Reporter {
+  report(input: ReporterInput): Promise<undefined>;
+}
+
+export const createSlackReporter = (
+  /**  channel slack ポスト先チャネルID. 指定されない場合は、Webhook URLに指定されているチャネル。 */
+  channel: string | undefined,
+  slack: IncomingWebhook,
+): Reporter => {
+  const slackReporter = {
+    async report({ accounts, start, end }) {
+      const message = buildSlackMessage({ accounts, start, end });
+      await slack.send({ attachments: [message], channel: channel });
+    },
+  } satisfies Reporter;
+
+  return slackReporter;
+};
 
 const getCostAndUsageByAccountSchema = z.object({
   ResultsByTime: z.array(
@@ -39,22 +60,22 @@ const getCostAndUsageByAccountSchema = z.object({
               Unit: z.literal("USD"),
             }),
           }),
-        })
+        }),
       ),
-    })
+    }),
   ),
   DimensionValueAttributes: z.array(
     z.object({
       Value: z.string(),
       Attributes: z.object({ description: z.string() }),
-    })
+    }),
   ),
 });
 
 type AccountIdNameMap = Record<string, string>;
 
 /**
- * AWS CostExpolere APIから指定期間のサービス毎のコストを取得し、Slackへメッセージとして送信します。
+ * AWS CostExplorer APIから指定期間のサービス毎のコストを取得し、Slackへメッセージとして送信します。
  *
  * @param params slack情報/コスト取得の日付
  * @param services slack API/AWS APIへアクセスするオブジェクト
@@ -62,9 +83,9 @@ type AccountIdNameMap = Record<string, string>;
 export async function postCostAndUsageByAccount(
   params: PostCostAndUsageParams,
   {
-    slack = new IncomingWebhook(params.webhook_url),
+    reporter,
     ce: cost = new CostExplorer({ region: "us-east-1" }),
-  }: PostCostAndUsageEnv = {}
+  }: PostCostAndUsageContext,
 ) {
   const startDate = params.start ?? yesterday();
   const start = format(startDate, "y-MM-dd");
@@ -89,7 +110,7 @@ export async function postCostAndUsageByAccount(
       map[valAttr.Value] = valAttr.Attributes.description;
       return map;
     },
-    {} as AccountIdNameMap
+    {} as AccountIdNameMap,
   );
 
   for (const result of costResponse.ResultsByTime) {
@@ -102,10 +123,15 @@ export async function postCostAndUsageByAccount(
         accountName: accountIdNameMap[accountId],
         cost: amount,
       };
-      return [...accounts, accountCost];
+      accounts.push(accountCost);
+      return accounts;
     }, [] as AccountCost[]);
-    const message = buildSlackMessage({ accounts, start, end });
-    await slack.send({ attachments: [message], channel: params.channel });
+
+    await reporter.report({
+      accounts,
+      start,
+      end,
+    });
   }
 }
 
@@ -132,7 +158,7 @@ function buildSlackMessage({
     text: " ",
     fields: accountsToPost.map((account) => ({
       title: `${account.accountName} (${account.accountId})`,
-      value: "$ " + account.cost.toFixed(3),
+      value: `$ ${account.cost.toFixed(3)}`,
       short: true,
     })),
     pretext: `*${start}* のAWS利用料 は *$ ${totalStr}* です`,
@@ -142,10 +168,10 @@ function buildSlackMessage({
 
 function assertsNotUndefined<T>(
   value: T | undefined,
-  name?: string
+  name?: string,
 ): asserts value is T {
   if (!value) {
-    throw new TypeError(`${name} shouldn&t be undefined`);
+    throw new TypeError(`${name} should not be undefined`);
   }
 }
 

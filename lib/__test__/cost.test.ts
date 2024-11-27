@@ -1,22 +1,45 @@
-import {
+import type {
+  CostExplorer,
+  GetCostAndUsageRequest,
   GetCostAndUsageResponse,
-  type CostExplorer,
-  type GetCostAndUsageRequest,
 } from "@aws-sdk/client-cost-explorer";
 import { describe, jest } from "@jest/globals";
-import { IncomingWebhook } from "@slack/webhook";
-import * as assert from "assert";
-import { addDays, format } from "date-fns";
-import { postCostAndUsageByAccount } from "../cost";
+import type { IncomingWebhook } from "@slack/webhook";
+import { format } from "date-fns";
+import * as assert from "node:assert";
+import {
+  type Reporter,
+  type ReporterInput,
+  createSlackReporter,
+  postCostAndUsageByAccount,
+} from "../cost";
+
+interface MockedReporter extends Reporter {
+  getArgs(): ReporterInput;
+}
+
+function createTestReporter(): MockedReporter {
+  let args: ReporterInput;
+  return {
+    async report(input) {
+      args = input;
+    },
+    getArgs() {
+      return args;
+    },
+  };
+}
 
 describe("postCostAndUsage", () => {
   test("指定日のコストエクスプローラの結果をslackへ送信する. リザーブドインスタンスなどの料金は支払日に加算する(AmortizedCost)", async () => {
     // Arrange
     // TypeScriptではmockResolvedValueの利用するのに型の指定が必要
     // https://jestjs.io/docs/mock-function-api#mockfnmockresolvedvalueoncevalue
-    const slack = {
-      send: jest.fn<() => Promise<{}>>().mockResolvedValueOnce({}),
-    } as unknown as IncomingWebhook;
+    const reporter = {
+      report: jest
+        .fn<() => Promise<Record<string, never>>>()
+        .mockResolvedValueOnce({}),
+    } as unknown as Reporter;
     const ce = {
       getCostAndUsage: jest
         .fn<() => Promise<GetCostAndUsageResponse>>()
@@ -72,41 +95,130 @@ describe("postCostAndUsage", () => {
         }),
     } as unknown as CostExplorer;
     const date = new Date(2020, 0, 2);
-    const token =
-      "xoxp-0000000000-0000000000-000000000000-00000000000000000000000000000000";
 
     // Act
-    await postCostAndUsageByAccount(
-      { channel: "C0TESTCHANNEL", webhook_url: token, start: date },
-      { slack, ce: ce }
-    );
+    await postCostAndUsageByAccount({ start: date }, { reporter, ce });
 
     // Assert
     const mockedGetCostAndUsage = ce.getCostAndUsage as jest.Mock;
     const firstCall = mockedGetCostAndUsage.mock
       .calls[0][0] as GetCostAndUsageRequest;
     assert.deepStrictEqual(
-      firstCall["TimePeriod"],
+      firstCall.TimePeriod,
       {
         Start: "2020-01-02",
         End: "2020-01-03",
       },
-      "指定日のコストを取得する"
+      "指定日のコストを取得する",
     );
     assert.deepStrictEqual(
-      firstCall["Metrics"],
+      firstCall.Metrics,
       ["AmortizedCost"],
-      "リザーブドインスタンス/Savings Planの料金は、使用期間で均等に割り振る"
+      "リザーブドインスタンス/Savings Planの料金は、使用期間で均等に割り振る",
     );
-    assert.deepStrictEqual(firstCall["Granularity"], "DAILY");
+    assert.deepStrictEqual(firstCall.Granularity, "DAILY");
     assert.deepStrictEqual(
-      firstCall["GroupBy"],
+      firstCall.GroupBy,
       [{ Type: "DIMENSION", Key: "LINKED_ACCOUNT" }],
-      "アカウント毎にグループ化する"
+      "アカウント毎にグループ化する",
     );
 
-    const mockedPostMessage = slack.send as jest.Mock;
-    assert.deepStrictEqual(mockedPostMessage.mock.calls[0][0], {
+    const mockedReport = reporter.report as jest.Mock;
+    assert.deepStrictEqual(mockedReport.mock.calls[0][0], {
+      accounts: [
+        {
+          accountId: "123456789123",
+          accountName: "Account A",
+          cost: 95.0012729986,
+        },
+        {
+          accountId: "456789123456",
+          accountName: "Account B",
+          cost: 159.4033492869,
+        },
+        {
+          accountId: "789123456789",
+          accountName: "Account C",
+          cost: 0.06,
+        },
+      ],
+      start: "2020-01-02",
+      end: "2020-01-03",
+    });
+  });
+
+  test("コストを取得する日付を指定しないとき,１日前のコストエクプローラの結果を取得する", async () => {
+    // Arrange
+    jest.useFakeTimers().setSystemTime(new Date(2024, 0, 1));
+    const today = new Date();
+    const slack = {
+      send: jest.fn<() => Promise<unknown>>().mockResolvedValueOnce({}),
+    } as unknown as IncomingWebhook;
+    const ce = {
+      getCostAndUsage: jest
+        .fn<() => Promise<GetCostAndUsageResponse>>()
+        .mockResolvedValueOnce({
+          GroupDefinitions: [{ Type: "DIMENSION", Key: "LINKED_ACCOUNT" }],
+          ResultsByTime: [],
+          DimensionValueAttributes: [],
+        }),
+    } as unknown as CostExplorer;
+
+    // Act
+    const reporter: Reporter = {
+      async report(_) {},
+    };
+    await postCostAndUsageByAccount({}, { reporter, ce });
+
+    // Assert
+    const mockedGetCostAndUsage = ce.getCostAndUsage as jest.Mock;
+    assert.deepStrictEqual(
+      (mockedGetCostAndUsage.mock.calls[0][0] as Record<string, unknown>)
+        .TimePeriod,
+      {
+        Start: format(new Date(2023, 11, 31), "y-MM-dd"),
+        End: format(today, "y-MM-dd"),
+      },
+    );
+  });
+});
+
+describe("Slack Reporter", () => {
+  test("指定されたChannelにコストレポートを送信する", async () => {
+    // Arrange
+    createSlackReporter;
+    const slack = {
+      send: jest
+        .fn<() => Promise<undefined>>()
+        .mockResolvedValueOnce(undefined),
+    } as unknown as IncomingWebhook;
+
+    // Act
+    const reporter = createSlackReporter("C0TESTCHANNEL", slack);
+    await reporter.report({
+      accounts: [
+        {
+          accountId: "123456789123",
+          accountName: "Account A",
+          cost: 95.0012729986,
+        },
+        {
+          accountId: "456789123456",
+          accountName: "Account B",
+          cost: 159.4033492869,
+        },
+        {
+          accountId: "789123456789",
+          accountName: "Account C",
+          cost: 0.06,
+        },
+      ],
+      start: "2020-01-02",
+      end: "2020-01-03",
+    });
+
+    // Assert
+    assert.deepStrictEqual((slack.send as jest.Mock).mock.calls[0][0], {
       attachments: [
         {
           fallback: "attachment",
@@ -130,46 +242,10 @@ describe("postCostAndUsage", () => {
               short: true,
             },
           ],
-          pretext: `*2020-01-02* のAWS利用料 は *$ 254.465* です`,
+          pretext: "*2020-01-02* のAWS利用料 は *$ 254.465* です",
         },
       ],
       channel: "C0TESTCHANNEL",
     });
-  });
-
-  test("コストを取得する日付を指定しないとき,１日前のコストエクプローラの結果を取得する", async () => {
-    // Arrange
-    const today = new Date();
-    const slack = {
-      send: jest.fn<() => Promise<any>>().mockResolvedValueOnce({}),
-    } as unknown as IncomingWebhook;
-    const ce = {
-      getCostAndUsage: jest
-        .fn<() => Promise<GetCostAndUsageResponse>>()
-        .mockResolvedValueOnce({
-          GroupDefinitions: [{ Type: "DIMENSION", Key: "LINKED_ACCOUNT" }],
-          ResultsByTime: [],
-          DimensionValueAttributes: [],
-        }),
-    } as unknown as CostExplorer;
-
-    // Act
-    await postCostAndUsageByAccount(
-      {
-        channel: "C0TESTCHANNEL",
-        webhook_url: "xoxp-0000000000",
-      },
-      { slack, ce }
-    );
-
-    // Assert
-    const mockedGetCostAndUsage = ce.getCostAndUsage as jest.Mock;
-    assert.deepStrictEqual(
-      (mockedGetCostAndUsage.mock.calls[0][0] as any).TimePeriod,
-      {
-        Start: format(addDays(today, -1), "y-MM-dd"),
-        End: format(today, "y-MM-dd"),
-      }
-    );
   });
 });
